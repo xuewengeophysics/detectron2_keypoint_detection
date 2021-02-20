@@ -7,6 +7,8 @@ from detectron2.modeling.backbone import Backbone
 from detectron2.layers import ShapeSpec
 from detectron2.modeling.backbone.build import BACKBONE_REGISTRY
 
+from keypoint.modeling.backbone import HRNet
+
 ##__all__是一个字符串list，用来定义模块中对于from XXX import *时要对外导出的符号，即要暴露的接口，
 ##但它只对from XXX import *起作用，对from XXX import XXX不起作用
 __all__ = [

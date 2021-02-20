@@ -3,9 +3,28 @@ from __future__ import division
 from __future__ import print_function
 
 import torch.nn as nn
-from maskrcnn_benchmark.layers import FrozenBatchNorm2d
-from maskrcnn_benchmark.layers import Conv2d
 
+import fvcore.nn.weight_init as weight_init
+
+from detectron2.layers import (
+    Conv2d,
+    DeformConv,
+    FrozenBatchNorm2d,
+    ModulatedDeformConv,
+    ShapeSpec,
+    get_norm,
+)
+
+from detectron2.modeling.backbone.build import BACKBONE_REGISTRY
+from detectron2.modeling.backbone import Backbone
+from detectron2.modeling.backbone.fpn import FPN, LastLevelMaxPool
+
+
+##__all__是一个字符串list，用来定义模块中对于from XXX import *时要对外导出的符号，即要暴露的接口，
+##但它只对from XXX import *起作用，对from XXX import XXX不起作用
+__all__ = [
+    "HRNet",
+]
 
 class BasicBlock(nn.Module):
     expansion = 1
@@ -216,18 +235,17 @@ class HighResolutionModule(nn.Module):
 
 
 class HRNet(Backbone):
-##class HRNet(nn.Module):
     def __init__(self, cfg, **kwargs):
         super(HRNet, self).__init__()
-
 
         self._out_features = cfg.MODEL.HRNET.OUT_FEATURES
         # print(self._out_features)
         out_stage_idx = [{"stage1": 0, "stage2": 1, "stage3": 2, "stage4": 3}[f] for f in self._out_features]
         max_stage_idx = max(out_stage_idx)
         self.out_stage_idx = out_stage_idx
-
         
+       
+    
         blocks_dict = {
             'BasicBlockWithFixedBatchNorm': BasicBlock,
             'BottleneckWithFixedBatchNorm': Bottleneck
@@ -282,6 +300,12 @@ class HRNet(Backbone):
         self.stage4, pre_stage_channels = self._make_stage(
             self.stage4_cfg, num_channels, multi_scale_output=self.stage4_cfg.MULTI_OUTPUT)
 
+        self._out_feature_channels = {'stage{}'.format(i+1): r for i, r in enumerate(pre_stage_channels)} 
+        self._out_feature_strides = {"stage1": 2, "stage2": 4, "stage3": 8, "stage4": 16}
+        
+        # {"res2": 64, "res3": 128, "res4": 256, "res5": 512} num_channels
+        # self._out_feature_channels = [ i * block.expansion for i in [32, 64, 128, 256]]
+        
     def _make_transition_layer(
             self, num_channels_pre_layer, num_channels_cur_layer):
         num_branches_cur = len(num_channels_cur_layer)
@@ -389,8 +413,6 @@ class HRNet(Backbone):
                 x_list.append(y_list[i])
         y_list = self.stage4(x_list)
 
-        ##return tuple(y_list)
-        
         outs = {}
         for i in self.out_stage_idx:
             outs['stage{}'.format(i+1)] = y_list[i]

@@ -2,25 +2,26 @@ INPUT:
   MIN_SIZE_TRAIN: (640, 672, 704, 736, 768, 800)
 MODEL:
   META_ARCHITECTURE: "GeneralizedRCNN"
+  KEYPOINT_ON: True
   WEIGHTS: ""  #_20210202
   BACKBONE:
     NAME: "build_hrnet_fpn_backbone"
-    OUT_CHANNELS: 256
-  NECK:
-    IN_CHANNELS:
-      - 18
-      - 36
-      - 72
-      - 144
-    OUT_CHANNELS: 256
-    POOLING: "AVG"
-  RPN:
-    USE_FPN: True
-    ANCHOR_STRIDE: (4, 8, 16, 32, 64)
-    PRE_NMS_TOP_N_TRAIN: 2000
-    PRE_NMS_TOP_N_TEST: 1000
-    POST_NMS_TOP_N_TEST: 1000
-    FPN_POST_NMS_TOP_N_TEST: 1000
+    # OUT_CHANNELS: 256
+  # NECK:
+  #   IN_CHANNELS:
+  #     - 18
+  #     - 36
+  #     - 72
+  #     - 144
+  #   OUT_CHANNELS: 256
+  #   POOLING: "AVG"
+  # RPN:
+  #   USE_FPN: True
+  #   ANCHOR_STRIDE: (4, 8, 16, 32, 64)
+  #   PRE_NMS_TOP_N_TRAIN: 2000
+  #   PRE_NMS_TOP_N_TEST: 1000
+  #   POST_NMS_TOP_N_TEST: 1000
+  #   FPN_POST_NMS_TOP_N_TEST: 1000
   HRNET:
     STAGE1:
       NUM_CHANNELS:
@@ -71,26 +72,45 @@ MODEL:
       BLOCK: 'BottleneckWithFixedBatchNorm'
       HEAD_UPSAMPLING: 'BILINEAR'
       HEAD_UPSAMPLING_KERNEL: 1
+  FPN:
+    IN_FEATURES: ["stage4"]
+    OUT_CHANNELS: 256
+  RPN:
+    IN_FEATURES: ['p2', 'p3', 'p4', 'p5', 'p6']
+    POST_NMS_TOPK_TEST: 1000
+    POST_NMS_TOPK_TRAIN: 1500
+    PRE_NMS_TOPK_TEST: 1000
+    PRE_NMS_TOPK_TRAIN: 2000
   ROI_HEADS:
-    USE_FPN: True
+    # USE_FPN: True
     BATCH_SIZE_PER_IMAGE: 512
+    IN_FEATURES: ['p2', 'p3', 'p4', 'p5']
+    IOU_LABELS: [0, 1]
+    IOU_THRESHOLDS: [0.5]
+    NAME: 'StandardROIHeads'
+    NMS_THRESH_TEST: 0.5
+    NUM_CLASSES: 1
     POSITIVE_FRACTION: 0.25
+    PROPOSAL_APPEND_GT: True
+    SCORE_THRESH_TEST: 0.05
   ROI_BOX_HEAD:
+    NAME: 'FastRCNNConvFCHead'
+    NUM_FC: 2
     POOLER_RESOLUTION: 7
-    POOLER_SCALES: (0.25, 0.125, 0.0625, 0.03125)
-    POOLER_SAMPLING_RATIO: 2
-    FEATURE_EXTRACTOR: "FPN2MLPFeatureExtractor"
-    PREDICTOR: "FPNPredictor"
-    NUM_CLASSES: 2
-  ROI_KEYPOINT_HEAD:
-    POOLER_SCALES: (0.25, 0.125, 0.0625, 0.03125)
-    FEATURE_EXTRACTOR: "KeypointRCNNFeatureExtractor"
-    PREDICTOR: "KeypointRCNNPredictor"
-    POOLER_RESOLUTION: 14
-    POOLER_SAMPLING_RATIO: 2
-    RESOLUTION: 56
-    SHARE_BOX_FEATURE_EXTRACTOR: False
-  KEYPOINT_ON: True
+    SMOOTH_L1_BETA: 0.0
+  #   POOLER_SCALES: (0.25, 0.125, 0.0625, 0.03125)
+  #   POOLER_SAMPLING_RATIO: 2
+  #   FEATURE_EXTRACTOR: "FPN2MLPFeatureExtractor"
+  #   PREDICTOR: "FPNPredictor"
+  #   NUM_CLASSES: 2
+  # ROI_KEYPOINT_HEAD:
+  #   POOLER_SCALES: (0.25, 0.125, 0.0625, 0.03125)
+  #   FEATURE_EXTRACTOR: "KeypointRCNNFeatureExtractor"
+  #   PREDICTOR: "KeypointRCNNPredictor"
+  #   POOLER_RESOLUTION: 14
+  #   POOLER_SAMPLING_RATIO: 2
+  #   RESOLUTION: 56
+  #   SHARE_BOX_FEATURE_EXTRACTOR: False
 DATASETS:
   TRAIN: ("keypoints_coco_2017_train", "keypoints_coco_2017_val",)
   TEST: ("keypoints_coco_2017_val",)
@@ -100,4 +120,4 @@ SOLVER:
   STEPS: (60000, 80000)
   MAX_ITER: 90000
   IMS_PER_BATCH: 1
-OUTPUT_DIR: "output/keypoint_rcnn_hrnet_w18_1x_20210202"  #_20210202
+OUTPUT_DIR: "output/keypoint_rcnn_hrnet_w18_1x_20210219"  #_20210202

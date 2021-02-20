@@ -4,21 +4,24 @@ from detectron2.config import CfgNode as CN
 
 
 # ---------------------------------------------------------------------------- #
-# NECK
+# NECK（在detectron2中没用到，所以都注释掉）
 # ---------------------------------------------------------------------------- #
-_C.MODEL.NECK = CN()
-_C.MODEL.NECK.IN_CHANNELS = (32, 64, 128, 256)
-_C.MODEL.NECK.OUT_CHANNELS = 256
-_C.MODEL.NECK.ACTIVATION = False
-_C.MODEL.NECK.POOLING = ' AVG'
-_C.MODEL.NECK.SHARING_CONV = False
-_C.MODEL.NECK.NUM_OUTS = 5
+# _C.MODEL.NECK = CN()
+# _C.MODEL.NECK.IN_CHANNELS = (32, 64, 128, 256)
+# _C.MODEL.NECK.OUT_CHANNELS = 256
+# _C.MODEL.NECK.ACTIVATION = False
+# _C.MODEL.NECK.POOLING = ' AVG'
+# _C.MODEL.NECK.SHARING_CONV = False
+# _C.MODEL.NECK.NUM_OUTS = 5
 
 # ---------------------------------------------------------------------------- #
 # HRNET options
 # These options apply to both
 # ---------------------------------------------------------------------------- #
 _C.MODEL.HRNET = CN()
+
+_C.MODEL.HRNET.OUT_FEATURES = ["stage1", "stage2", "stage3", "stage4"]
+
 # MODEL.HRNET related params
 _C.MODEL.HRNET.BASE_CHANNEL = [96, 96, 96, 96]
 _C.MODEL.HRNET.CHANNEL_GROWTH = 2
