@@ -234,18 +234,10 @@ class HighResolutionModule(nn.Module):
         return x_fuse
 
 
-class HRNet(Backbone):
+class HRNet(nn.Module):
     def __init__(self, cfg, **kwargs):
         super(HRNet, self).__init__()
 
-        self._out_features = cfg.MODEL.HRNET.OUT_FEATURES
-        # print(self._out_features)
-        out_stage_idx = [{"stage1": 0, "stage2": 1, "stage3": 2, "stage4": 3}[f] for f in self._out_features]
-        max_stage_idx = max(out_stage_idx)
-        self.out_stage_idx = out_stage_idx
-        
-       
-    
         blocks_dict = {
             'BasicBlockWithFixedBatchNorm': BasicBlock,
             'BottleneckWithFixedBatchNorm': Bottleneck
@@ -298,14 +290,8 @@ class HRNet(Backbone):
         self.transition3 = self._make_transition_layer(
             pre_stage_channels, num_channels)
         self.stage4, pre_stage_channels = self._make_stage(
-            self.stage4_cfg, num_channels, multi_scale_output=self.stage4_cfg.MULTI_OUTPUT)
+            self.stage4_cfg, num_channels, multi_scale_output=self.stage4_cfg.MULTI_OUTPUT)  ##_C.MODEL.HRNET.STAGE4.MULTI_OUTPUT = True
 
-        self._out_feature_channels = {'stage{}'.format(i+1): r for i, r in enumerate(pre_stage_channels)} 
-        self._out_feature_strides = {"stage1": 2, "stage2": 4, "stage3": 8, "stage4": 16}
-        
-        # {"res2": 64, "res3": 128, "res4": 256, "res5": 512} num_channels
-        # self._out_feature_channels = [ i * block.expansion for i in [32, 64, 128, 256]]
-        
     def _make_transition_layer(
             self, num_channels_pre_layer, num_channels_cur_layer):
         num_branches_cur = len(num_channels_cur_layer)
@@ -411,9 +397,11 @@ class HRNet(Backbone):
                 x_list.append(self.transition3[i](y_list[-1]))
             else:
                 x_list.append(y_list[i])
-        y_list = self.stage4(x_list)
+        y_list = self.stage4(x_list)  ##多分支输出，因此len(y_list)等于4
+        ##len(y_list)等于4，元素都是tensor
+        ##y_list[0].shape为torch.Size([1,  18, 192, 336])
+        ##y_list[1].shape为torch.Size([1,  36,  96, 168])
+        ##y_list[2].shape为torch.Size([1,  72,  48,  84])
+        ##y_list[3].shape为torch.Size([1, 144,  24,  42])
 
-        outs = {}
-        for i in self.out_stage_idx:
-            outs['stage{}'.format(i+1)] = y_list[i]
-        return outs
+        return tuple(y_list)

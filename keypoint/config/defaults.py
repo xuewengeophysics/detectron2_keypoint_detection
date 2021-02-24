@@ -4,15 +4,15 @@ from detectron2.config import CfgNode as CN
 
 
 # ---------------------------------------------------------------------------- #
-# NECK（在detectron2中没用到，所以都注释掉）
+# FPN（在maskrcnn-benchmark中为NECK）
 # ---------------------------------------------------------------------------- #
 # _C.MODEL.NECK = CN()
-# _C.MODEL.NECK.IN_CHANNELS = (32, 64, 128, 256)
+_C.MODEL.FPN.IN_CHANNELS = (32, 64, 128, 256)
 # _C.MODEL.NECK.OUT_CHANNELS = 256
 # _C.MODEL.NECK.ACTIVATION = False
-# _C.MODEL.NECK.POOLING = ' AVG'
+_C.MODEL.FPN.POOLING = ' AVG'
 # _C.MODEL.NECK.SHARING_CONV = False
-# _C.MODEL.NECK.NUM_OUTS = 5
+_C.MODEL.FPN.NUM_OUTS = 5
 
 # ---------------------------------------------------------------------------- #
 # HRNET options
