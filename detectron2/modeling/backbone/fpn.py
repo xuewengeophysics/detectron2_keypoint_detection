@@ -88,6 +88,7 @@ class FPN(Backbone):
         self.lateral_convs = lateral_convs[::-1]
         self.output_convs = output_convs[::-1]
         self.top_block = top_block
+        ##in_features等于cfg.MODEL.FPN.IN_FEATURES，为["res2", "res3", "res4", "res5"]
         self.in_features = tuple(in_features)
         self.bottom_up = bottom_up
         # Return feature names are "p<stage>", like ["p2", "p3", ..., "p6"]
@@ -110,6 +111,7 @@ class FPN(Backbone):
     def forward(self, x):
         """
         Args:
+            x是图片，x.shape为torch.Size([1, 3, 800, 1216])，经过一些列卷积操作后缩小4倍，变为torch.Size([1, 256, 200, 304])
             input (dict[str->Tensor]): mapping feature map name (e.g., "res5") to
                 feature map tensor for each feature level in high to low resolution order.
 
@@ -120,16 +122,31 @@ class FPN(Backbone):
                 paper convention: "p<stage>", where stage has stride = 2 ** stage e.g.,
                 ["p2", "p3", ..., "p6"].
         """
+        ##bottom_up_features是dict，bottom_up_features.keys()为dict_keys(['res2', 'res3', 'res4', 'res5'])
         bottom_up_features = self.bottom_up(x)
         results = []
+        ##self.in_features为('res2', 'res3', 'res4', 'res5')
+        ##self.lateral_convs是list，其长度为4；
+        ##[Conv2d(2048, 256, kernel_size=(1, 1), stride=(1, 1)), 
+        ## Conv2d(1024, 256, kernel_size=(1, 1), stride=(1, 1)), 
+        ## Conv2d(512, 256, kernel_size=(1, 1), stride=(1, 1)), 
+        ## Conv2d(256, 256, kernel_size=(1, 1), stride=(1, 1))]
+        ##prev_features.shape为torch.Size([1, 256, 200, 304])
         prev_features = self.lateral_convs[0](bottom_up_features[self.in_features[-1]])
+        ##self.output_convs是list，其长度为4；
+        ##[Conv2d(256, 256, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1)), 
+        ## Conv2d(256, 256, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1)), 
+        ## Conv2d(256, 256, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1)), 
+        ## Conv2d(256, 256, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1))]
         results.append(self.output_convs[0](prev_features))
 
         # Reverse feature maps into top-down order (from low to high resolution)
+        ##self.in_features为('res2', 'res3', 'res4', 'res5')，res2->res5，分辨率是从高到低
         for features, lateral_conv, output_conv in zip(
             self.in_features[-2::-1], self.lateral_convs[1:], self.output_convs[1:]
         ):
             features = bottom_up_features[features]
+            ##低分辨率往高分辨率插值
             top_down_features = F.interpolate(prev_features, scale_factor=2.0, mode="nearest")
             # Has to use explicit forward due to https://github.com/pytorch/pytorch/issues/47336
             lateral_features = lateral_conv.forward(features)
@@ -145,6 +162,12 @@ class FPN(Backbone):
                 top_block_in_feature = results[self._out_features.index(self.top_block.in_feature)]
             results.extend(self.top_block(top_block_in_feature))
         assert len(self._out_features) == len(results)
+        ##返回的dict.keys()为dict_keys(['p2', 'p3', 'p4', 'p5', 'p6'])
+        ##fpn_out['p2'].shape为torch.Size([1, 256, 200, 304])
+        ##fpn_out['p3'].shape为torch.Size([1, 256, 100, 152])
+        ##fpn_out['p4'].shape为torch.Size([1, 256, 50, 76])
+        ##fpn_out['p5'].shape为torch.Size([1, 256, 25, 38])
+        ##fpn_out['p6'].shape为torch.Size([1, 256, 13, 19])
         return {f: res for f, res in zip(self._out_features, results)}
 
     def output_shape(self):
@@ -207,11 +230,13 @@ def build_resnet_fpn_backbone(cfg, input_shape: ShapeSpec):
     """
     Args:
         cfg: a detectron2 CfgNode
+        input_shape: ShapeSpec(channels=3, height=None, width=None, stride=None)
 
     Returns:
         backbone (Backbone): backbone module, must be a subclass of :class:`Backbone`.
     """
     bottom_up = build_resnet_backbone(cfg, input_shape)
+    import ipdb; ipdb.set_trace()
     in_features = cfg.MODEL.FPN.IN_FEATURES
     out_channels = cfg.MODEL.FPN.OUT_CHANNELS
     backbone = FPN(

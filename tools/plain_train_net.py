@@ -192,7 +192,8 @@ def setup(args):
 def main(args):
     cfg = setup(args)
 
-    model = build_model(cfg)
+    model = build_model(cfg)  #<class 'detectron2.modeling.meta_arch.rcnn.GeneralizedRCNN'>
+    import ipdb;ipdb.set_trace()
     logger.info("Model:\n{}".format(model))
     if args.eval_only:
         DetectionCheckpointer(model, save_dir=cfg.OUTPUT_DIR).resume_or_load(
